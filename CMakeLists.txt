@@ -4,7 +4,7 @@ project(miredify)
 set(CMAKE_CXX_STANDARD 23)
 
 add_executable(miredify main.cpp)
+target_include_directories(miredify PRIVATE include)
 
 find_package(Boost)
-find_package(fmt)
-target_link_libraries(miredify boost::boost fmt::fmt)
+target_link_libraries(miredify boost::boost)
