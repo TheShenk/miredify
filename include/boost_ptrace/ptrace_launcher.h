@@ -1,8 +1,3 @@
-/**
- * @license
- * (C) PROTEI protei.ru
- */
-
 #pragma once
 
 #include <sys/ptrace.h>

@@ -1,6 +1,9 @@
 #include <iostream>
 #include <print>
 
+#include <expected>
+#include <boost/asio.hpp>
+
 #include <boost/process/v1/search_path.hpp>
 #include <boost/process/v2.hpp>
 #include <boost/program_options.hpp>
@@ -13,28 +16,20 @@
 
 #include "boost_ptrace/ptrace_process.h"
 
-boost::cobalt::generator<long> syscall_it(boost::process::process &process)
+boost::cobalt::generator<long> syscall_it(shk::ptrace_process &process)
 {
     while (true)
     {
-        std::println("ptrace(PTRACE_SYSCALL) = {}", ptrace(PTRACE_SYSCALL, process.id(), NULL, NULL));
-        co_await process.async_wait();
+        co_await process.async_ptrace_syscall();
+        auto enter_syscall = process.ptrace_syscall_number();
 
-        user_regs_struct registers;
-        std::println("ptrace(PTRACE_GETREGS) = {}", ptrace(PTRACE_GETREGS, process.id(), NULL, &registers));
-
-        ptrace(PTRACE_SYSCALL, process.id(), NULL, NULL);
-        co_await process.async_wait();
-
-        if (ptrace(PTRACE_GETREGS, process.id(), NULL, &registers) == -1)
-        {
-            co_return registers.orig_rax;
-        }
-        co_yield registers.orig_rax;
+        co_await process.async_ptrace_syscall();
+        co_yield enter_syscall;
     }
 }
 
 boost::cobalt::main co_main(int argc, char **argv) {
+
     auto exec = co_await boost::cobalt::this_coro::executor;
 
     boost::program_options::options_description desc("Allowed options");
@@ -54,6 +49,7 @@ boost::cobalt::main co_main(int argc, char **argv) {
                                           .run(), vm);
     boost::program_options::notify(vm);
 
+    std::expected<void, int> result;
     if (vm.count("help")) {
         std::cout << desc << std::endl;
         co_return 1;
