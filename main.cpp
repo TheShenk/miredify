@@ -20,11 +20,10 @@ boost::cobalt::generator<long> syscall_it(shk::ptrace_process &process)
 {
     while (true)
     {
-        co_await process.async_ptrace_syscall();
-        auto enter_syscall = process.ptrace_syscall_number();
-
-        co_await process.async_ptrace_syscall();
-        co_yield enter_syscall;
+        auto syscall = co_await process.async_wait_syscall();
+        auto number = syscall.number();
+        co_await process.async_wait_syscall();
+        co_yield number;
     }
 }
 
